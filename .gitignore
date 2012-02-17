@@ -23,7 +23,7 @@ libtool
 ltmain.sh
 missing
 stamp-h?
-config.h
+/config.h
 config.h.in
 .*.swp
 pixman/pixman-combine32.c
