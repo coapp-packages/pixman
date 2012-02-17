@@ -1,0 +1,39 @@
+#product-info  {
+    product-name: "pixman";
+    version: "0.24.0";
+    original-source-location: "git://anongit.freedesktop.org/git/pixman";
+    original-source-website: "http://pixman.org/";
+    license: "Expat/MIT License";
+    packager: "Vincent Povirk <madewokherd@gmail.com>";
+}
+
+/* 
+    Maintainer notes:
+    
+    After merging a new version:
+	 * Edit COPKG\pixman\pixman-version.h with the changed version number.
+	 * Update COPKG\pixman\pixman\pixman.def with any new exports.
+*/
+
+
+x86{
+    tools: { perl }; // we should have a check in PTK that can verify these are available.
+
+    compiler: vc10;
+    platform: x86;
+     
+    targets: { 
+        "COPKG\pixman\Release\pixman.dll",
+        "COPKG\pixman\Release\pixman.lib"
+    };
+     
+    build-command:@"
+        cd COPKG\pixman
+	    msbuild /p:Platform=Win32 /p:Configuration=Release pixman.sln
+    ";
+     
+    clean-command:@"
+        cd COPKG\pixman
+	    msbuild /p:Platform=Win32 /p:Configuration=Release /target:Clean pixman.sln
+    ";
+};
