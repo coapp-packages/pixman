@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{D8F57569-957D-4D28-8DDB-D1F97F5FFED4}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>pixman</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <CustomBuildBeforeTargets>ClCompile</CustomBuildBeforeTargets>
+    <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <CustomBuildBeforeTargets>ClCompile</CustomBuildBeforeTargets>
+    <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;_DEBUG;_WINDOWS;_USRDLL;PIXMAN_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ModuleDefinitionFile>pixman.def</ModuleDefinitionFile>
+    </Link>
+    <CustomBuildStep>
+      <Command>cd "$(SolutionDir)..\..\pixman"
+set PATH=%PATH%;$(SolutionDir)..\..\..\perl
+perl make-combine.pl 8 &lt; pixman-combine.c.template &gt; pixman-combine32.c
+perl make-combine.pl 8 &lt; pixman-combine.h.template &gt; pixman-combine32.h
+perl make-combine.pl 16 &lt; pixman-combine.c.template &gt; pixman-combine64.c
+perl make-combine.pl 16 &lt; pixman-combine.h.template &gt; pixman-combine64.h
+</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Generating combine source files</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(SolutionDir)..\..\pixman\pixman-combine32.c;$(SolutionDir)..\..\pixman\pixman-combine32.h;$(SolutionDir)..\..\pixman\pixman-combine64.c;$(SolutionDir)..\..\pixman\pixman-combine64.h;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>$(SolutionDir)..\..\pixman\make-combine.pl;$(SolutionDir)..\..\pixman\pixman-combine.c.template;$(SolutionDir)..\..\pixman\pixman-combine.h.template;%(Inputs)</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;HAVE_CONFIG_H;NDEBUG;_WINDOWS;_USRDLL;PIXMAN_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <ModuleDefinitionFile>pixman.def</ModuleDefinitionFile>
+    </Link>
+    <CustomBuildStep>
+      <Command>cd "$(SolutionDir)..\..\pixman"
+set PATH=%PATH%;$(SolutionDir)..\..\..\perl
+perl make-combine.pl 8 &lt; pixman-combine.c.template &gt; pixman-combine32.c
+perl make-combine.pl 8 &lt; pixman-combine.h.template &gt; pixman-combine32.h
+perl make-combine.pl 16 &lt; pixman-combine.c.template &gt; pixman-combine64.c
+perl make-combine.pl 16 &lt; pixman-combine.h.template &gt; pixman-combine64.h
+</Command>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Message>Generating combine source files</Message>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Outputs>$(SolutionDir)..\..\pixman\pixman-combine32.c;$(SolutionDir)..\..\pixman\pixman-combine32.h;$(SolutionDir)..\..\pixman\pixman-combine64.c;$(SolutionDir)..\..\pixman\pixman-combine64.h;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep>
+      <Inputs>$(SolutionDir)..\..\pixman\make-combine.pl;$(SolutionDir)..\..\pixman\pixman-combine.c.template;$(SolutionDir)..\..\pixman\pixman-combine.h.template;%(Inputs)</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\pixman\pixman-access-accessors.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-access.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-bits-image.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-combine32.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-combine64.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-conical-gradient.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-cpu.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-edge-accessors.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-edge.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-fast-path.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-general.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-gradient-walker.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-image.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-implementation.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-linear-gradient.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-matrix.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-mmx.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-noop.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-radial-gradient.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-region16.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-region32.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-solid-fill.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-sse2.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-timer.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-trap.c" />
+    <ClCompile Include="..\..\..\pixman\pixman-utils.c" />
+    <ClCompile Include="..\..\..\pixman\pixman.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\pixman\pixman-compiler.h" />
+    <ClInclude Include="..\config.h" />
+    <ClInclude Include="..\pixman-version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pixman.def" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
