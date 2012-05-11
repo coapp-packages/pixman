@@ -1,6 +1,8 @@
+@import "version.inc";
+
 #product-info  {
     product-name: "pixman";
-    version: "0.24.0";
+    version: "${package-version}";
     original-source-location: "git://anongit.freedesktop.org/git/pixman";
     original-source-website: "http://pixman.org/";
     license: "Expat/MIT License";
@@ -42,4 +44,25 @@ x86{
 
 release {
 	uses: x86;
+}
+
+test {
+}
+
+package {
+	uses: release;
+
+	build-command:@"
+		cd COPKG
+		autopackage pixman.autopkg || goto failed
+	";
+
+	targets: {
+		"COPKG\pixman[vc10]-${package-version}-x86.msi",
+	};
+
+	clean-command:@"
+		del COPKG\*.msi
+		del COPKG\*.wixpdb
+	";
 }
