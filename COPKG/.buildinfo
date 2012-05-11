@@ -28,8 +28,10 @@ x86{
     };
      
     build-command:@"
+		if ""${BUILT}"" equ ""true"" goto end
         cd COPKG\pixman
 	    msbuild /p:Platform=Win32 /p:Configuration=Release pixman.sln
+:end
     ";
      
     clean-command:@"
@@ -37,3 +39,7 @@ x86{
 	    msbuild /p:Platform=Win32 /p:Configuration=Release /target:Clean pixman.sln
     ";
 };
+
+release {
+	uses: x86;
+}
