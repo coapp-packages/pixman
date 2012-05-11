@@ -55,11 +55,12 @@ package {
 	build-command:@"
 		cd COPKG
 		autopackage pixman-dev-common.autopkg || goto failed
-		autopackage pixman.autopkg || goto failed
+		autopackage pixman.autopkg pixman-dev.autopkg || goto failed
 	";
 
 	targets: {
 		"COPKG\pixman[vc10]-${package-version}-x86.msi",
+		"COPKG\pixman-dev[vc10]-${package-version}-x86.msi",
 		"COPKG\pixman-dev-common-${package-version}-any.msi",
 	};
 
