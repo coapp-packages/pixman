@@ -23,7 +23,7 @@ license[MIT] {
 metadata {  
     summary: "Pixman";
     description: @"Pixman is a low-level software library for pixel manipulation.";
-    author-version : "${author-version}";
+    author-version : "${package-version}";
     bug-tracker: "https://github.com/coapp-packages/pixman/issues";
     stability : "0";
     licenses : {
