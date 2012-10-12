@@ -128,3 +128,5 @@ EXPORTS
 	pixman_composite_trapezoids
 	pixman_composite_triangles
 	pixman_add_triangles
+	pixman_region_clear
+	pixman_region32_clear
