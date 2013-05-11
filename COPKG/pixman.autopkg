@@ -1,68 +1,57 @@
-@import "version.inc";
-@import "compat.inc";
-@import "outercurve.inc";
+@import @"version.inc";
 
-#define { 
-    flavor: "${comp??vc10}"; 
-    arch : "${plat??x86}";
-}
-
-package {
-    name: "pixman[${flavor}]";
-    version: "${package-version}";
-    arch : "${arch}";
-
-    display-name: "Pixman";
-    location: "http://coapp.org/repository/${OutputFilename}";
-
-    feed: "http://coapp.org/repository/packages.atom.xml";
-    publisher: "CoApp Project";
-}
-
-license[MIT] {
-	license: @"..\COPYING";
-    license-url: "http://www.opensource.org/licenses/mit-license.php";
-    license-type: "MIT";
-}
-
-metadata {  
-    summary: "Pixman";
-    description: @"Pixman is a low-level software library for pixel manipulation.";
-    author-version : "${package-version}";
-    bug-tracker: "https://github.com/coapp-packages/pixman/issues";
-    stability : "0";
-    licenses : {
-        MIT
+nuget {
+    nuspec {
+        id: pixman;
+        version: 8.32.0.8;
+        title: pixman;
+        authors: {pixman contributors, Benjamin Herila};
+        owners: {Benjamin Herila, CoApp Project};
+        licenseUrl: "";
+        projectUrl: "";
+        iconUrl: "https://download-codeplex.sec.s-msft.com/Download?ProjectName=casablanca&DownloadId=630102&Build=20425";
+        requireLicenseAcceptance:false;
+        summary:"";
+        description: @"";
+        releaseNotes: "";
+        copyright: Copyright 2013; 
+        tags: { regex, native, CoApp };
     };
+	
+	files { 
+		include: {
+			..\pixman\*.h
+		};
+		
+		source: {
+			..\pixman\*.c,
+			..\pixman\*.asm,
+			..\pixman\*.template,
+			..\pixman\*.in,
+			..\pixman\*.S
+		};
+		
+		("x86,x64", "release,debug", "v100,v110", "dynamic,static", "cdecl,stdcall") => {
+		[${0},${1},${2},${3}] {
+			lib:     { pixman\output\${2}\${0}\${1}\${4}\lib\*.lib };
+			bin:     { pixman\output\${2}\${0}\${1}\${4}\lib\*.exe };
+			symbols: { pixman\output\${2}\${0}\${1}\${4}\lib\*.pdb };
+			};
+		}
+		}
+		
+	};
+	
+	dependencies {
+		packages : {
+			bzip2/1.0.6.7
+		};
+	};
+
+	docs: { ..\doc\**\* };
+
+	targets {
+		Defines += HAS_PIXMAN;
+	};
+		
 }
-
-signing {
-    attributes : {
-        company="Outercurve Foundation",
-        description="Pixman is a low-level software library for pixel manipulation.",
-        product-name="Pixman",
-        product-version="${package-version}",
-        file-version="${package-version}",
-    };
-
-    replace-signature: true; 
-    include: { 
-        dlls
-    };    
-}
-
-assembly[pixman[${flavor}]] {
-    include: { 
-        dlls
-    };
-}
-
-files[dlls] {
-    root: @"..\COPKG\pixman\Release";
-
-    include: {
-        "pixman.dll",
-    };
-
-    trim-path: all;
-};
