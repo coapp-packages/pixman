@@ -1,0 +1,38 @@
+@import default_tools;
+
+default {
+    
+	("V110,V100", "win32,X64", "Release,Debug", "Static,Dynamic" ) => {
+        .PushEnvironment{};
+        .LoadSystemEnvironment{};
+        .Message.Text = @"envTarg = vc_${0}_${1}   --  ${2}  ${3}";
+        
+        .SetEnvironmentFromTarget.Target = "VC_${0}_${1}";
+        
+        .Message.Text = @"EnvValid = $(IsEnvironmentValid)";
+
+	   .Exec {
+            Condition="$(IsEnvironmentValid)";
+            Command = @"msbuild pixman.vcxproj /p:PlatformToolset=${0};Platform=${1};Configuration=${2};UsesConfigurationType=${3}";
+        };
+		
+        .PopEnvironment{};
+    };
+};
+
+clean {
+    .RemoveDir.Directories = @"intermediate";
+	.Delete.Files = @"..\pixman\pixman-combine32.c";
+	.Delete.Files = @"..\pixman\pixman-combine64.c";
+	.Delete.Files = @"..\pixman\pixman-combine32.h";
+	.Delete.Files = @"..\pixman\pixman-combine64.h";
+};
+
+nuke {
+    .RemoveDir.Directories = @"output";
+	.RemoveDir.Directories = @"intermediate";
+	.Delete.Files = @"..\pixman\pixman-combine32.c";
+	.Delete.Files = @"..\pixman\pixman-combine64.c";
+	.Delete.Files = @"..\pixman\pixman-combine32.h";
+	.Delete.Files = @"..\pixman\pixman-combine64.h";
+};

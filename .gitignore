@@ -54,3 +54,6 @@ test/window-test
 *.ilk
 *.obj
 *.exe
+COPKG/Intermediate
+COPKG/Output
+*.nupkg
