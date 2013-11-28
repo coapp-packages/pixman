@@ -25,10 +25,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define PIXMAN_USE_INTERNAL_API
-#include <pixman.h>
-
 #include "utils.h"
 
 #define SOLID_FLAG 1
@@ -36,6 +32,14 @@
 
 #define L1CACHE_SIZE (8 * 1024)
 #define L2CACHE_SIZE (128 * 1024)
+
+/* This is applied to both L1 and L2 tests - alternatively, you could
+ * parameterise bench_L or split it into two functions. It could be
+ * read at runtime on some architectures, but it only really matters
+ * that it's a number that's an integer divisor of both cacheline
+ * lengths, and further, it only really matters for caches that don't
+ * do allocate0on-write. */
+#define CACHELINE_LENGTH (32) /* bytes */
 
 #define WIDTH  1920
 #define HEIGHT 1080
@@ -84,10 +88,28 @@ bench_memcpy ()
     return (double)total / (t2 - t1);
 }
 
+static pixman_bool_t use_scaling = FALSE;
+static pixman_filter_t filter = PIXMAN_FILTER_NEAREST;
+
+/* nearly 1x scale factor */
+static pixman_transform_t m =
+{
+    {
+        { pixman_fixed_1 + 1, 0,              0              },
+        { 0,                  pixman_fixed_1, 0              },
+        { 0,                  0,              pixman_fixed_1 }
+    }
+};
+
 static void
 pixman_image_composite_wrapper (pixman_implementation_t *impl,
 				pixman_composite_info_t *info)
 {
+    if (use_scaling)
+    {
+        pixman_image_set_filter (info->src_image, filter, NULL, 0);
+        pixman_image_set_transform(info->src_image, &m);
+    }
     pixman_image_composite (info->op,
 			    info->src_image, info->mask_image, info->dest_image,
 			    info->src_x, info->src_y,
@@ -100,6 +122,11 @@ static void
 pixman_image_composite_empty (pixman_implementation_t *impl,
 			      pixman_composite_info_t *info)
 {
+    if (use_scaling)
+    {
+        pixman_image_set_filter (info->src_image, filter, NULL, 0);
+        pixman_image_set_transform(info->src_image, &m);
+    }
     pixman_image_composite (info->op,
 			    info->src_image, info->mask_image, info->dest_image,
 			    0, 0, 0, 0, 0, 0, 1, 1);
@@ -149,18 +176,29 @@ bench_L  (pixman_op_t              op,
           int                      width,
           int                      lines_count)
 {
-    int64_t      i, j;
+    int64_t      i, j, k;
     int          x = 0;
     int          q = 0;
     volatile int qx;
 
     for (i = 0; i < n; i++)
     {
-	/* touch destination buffer to fetch it into L1 cache */
-	for (j = 0; j < width + 64; j += 16) {
-	    q += dst[j];
-	    q += src[j];
-	}
+        /* For caches without allocate-on-write, we need to force the
+         * destination buffer back into the cache on each iteration,
+         * otherwise if they are evicted during the test, they remain
+         * uncached. This doesn't matter for tests which read the
+         * destination buffer, or for caches that do allocate-on-write,
+         * but in those cases this loop just adds constant time, which
+         * should be successfully cancelled out.
+         */
+        for (j = 0; j < lines_count; j++)
+        {
+            for (k = 0; k < width + 62; k += CACHELINE_LENGTH / sizeof *dst)
+            {
+                q += dst[j * WIDTH + k];
+            }
+            q += dst[j * WIDTH + width + 62];
+        }
 	if (++x >= 64)
 	    x = 0;
 	call_func (func, op, src_img, mask_img, dst_img, x, 0, x, 0, 63 - x, 0, width, lines_count);
@@ -347,6 +385,7 @@ bench_composite (char * testname,
     double                          t1, t2, t3, pix_cnt;
     int64_t                         n, l1test_width, nlines;
     double                             bytes_per_pix = 0;
+    pixman_bool_t                   bench_pixbuf = FALSE;
 
     pixman_composite_func_t func = pixman_image_composite_wrapper;
 
@@ -384,16 +423,20 @@ bench_composite (char * testname,
 
     mask_img = NULL;
     xmask_img = NULL;
+    if (strcmp (testname, "pixbuf") == 0 || strcmp (testname, "rpixbuf") == 0)
+    {
+        bench_pixbuf = TRUE;
+    }
     if (!(mask_flags & SOLID_FLAG) && mask_fmt != PIXMAN_null)
     {
         bytes_per_pix += (mask_fmt >> 24) / ((op == PIXMAN_OP_SRC) ? 8.0 : 4.0);
         mask_img = pixman_image_create_bits (mask_fmt,
                                              WIDTH, HEIGHT,
-                                             mask,
+                                             bench_pixbuf ? src : mask,
                                              WIDTH * 4);
         xmask_img = pixman_image_create_bits (mask_fmt,
                                              XWIDTH, XHEIGHT,
-                                             mask,
+                                             bench_pixbuf ? src : mask,
                                              XWIDTH * 4);
     }
     else if (mask_fmt != PIXMAN_null)
@@ -422,8 +465,8 @@ bench_composite (char * testname,
     printf ("%24s %c", testname, func != pixman_image_composite_wrapper ?
             '-' : '=');
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     l1test_width = L1CACHE_SIZE / 8 - 64;
     if (l1test_width < 1)
@@ -442,8 +485,8 @@ bench_composite (char * testname,
             ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     nlines = (L2CACHE_SIZE / l1test_width) /
 	((PIXMAN_FORMAT_BPP(src_fmt) + PIXMAN_FORMAT_BPP(dst_fmt)) / 8);
@@ -461,8 +504,8 @@ bench_composite (char * testname,
             ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (WIDTH * HEIGHT);
     t1 = gettime ();
@@ -477,8 +520,8 @@ bench_composite (char * testname,
         ((double)n * (WIDTH - 64) * HEIGHT / ((t3 - t2) - (t2 - t1)) * bytes_per_pix) * (100.0 / bandwidth) );
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (8 * TILEWIDTH * TILEWIDTH);
     t1 = gettime ();
@@ -491,8 +534,8 @@ bench_composite (char * testname,
     printf ("  HT:%6.2f", (double)pix_cnt / ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (8 * TILEWIDTH * TILEWIDTH);
     t1 = gettime ();
@@ -505,8 +548,8 @@ bench_composite (char * testname,
     printf ("  VT:%6.2f", (double)pix_cnt / ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (8 * TILEWIDTH * TILEWIDTH);
     t1 = gettime ();
@@ -519,8 +562,8 @@ bench_composite (char * testname,
     printf ("  R:%6.2f", (double)pix_cnt / ((t3 - t2) - (t2 - t1)) / 1000000.);
     fflush (stdout);
 
-    memcpy (src, dst, BUFSIZE);
     memcpy (dst, src, BUFSIZE);
+    memcpy (src, dst, BUFSIZE);
 
     n = 1 + npix / (16 * TINYWIDTH * TINYWIDTH);
     t1 = gettime ();
@@ -586,6 +629,8 @@ tests_tbl[] =
     { "add_1555_1555",         PIXMAN_a1r5g5b5,    0, PIXMAN_OP_ADD,     PIXMAN_null,     0, PIXMAN_a1r5g5b5 },
     { "add_0565_2x10",         PIXMAN_r5g6b5,      0, PIXMAN_OP_ADD,     PIXMAN_null,     0, PIXMAN_x2r10g10b10 },
     { "add_2a10_2a10",         PIXMAN_a2r10g10b10, 0, PIXMAN_OP_ADD,     PIXMAN_null,     0, PIXMAN_a2r10g10b10 },
+    { "in_n_8_8",              PIXMAN_a8r8g8b8,    1, PIXMAN_OP_IN,      PIXMAN_a8,       0, PIXMAN_a8 },
+    { "in_8_8",                PIXMAN_a8,          0, PIXMAN_OP_IN,      PIXMAN_null,     0, PIXMAN_a8 },
     { "src_n_2222",            PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a2r2g2b2 },
     { "src_n_0565",            PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_n_1555",            PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a1r5g5b5 },
@@ -595,6 +640,7 @@ tests_tbl[] =
     { "src_n_2x10",            PIXMAN_a2r10g10b10, 1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x2r10g10b10 },
     { "src_n_2a10",            PIXMAN_a2r10g10b10, 1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a2r10g10b10 },
     { "src_8888_0565",         PIXMAN_a8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
+    { "src_0565_8888",         PIXMAN_r5g6b5,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "src_8888_4444",         PIXMAN_a8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a4r4g4b4 },
     { "src_8888_2222",         PIXMAN_a8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a2r2g2b2 },
     { "src_8888_2x10",         PIXMAN_a8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x2r10g10b10 },
@@ -602,12 +648,16 @@ tests_tbl[] =
     { "src_0888_0565",         PIXMAN_r8g8b8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_0888_8888",         PIXMAN_r8g8b8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "src_0888_x888",         PIXMAN_r8g8b8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
+    { "src_0888_8888_rev",     PIXMAN_b8g8r8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
+    { "src_0888_0565_rev",     PIXMAN_b8g8r8,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_x888_x888",         PIXMAN_x8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
     { "src_x888_8888",         PIXMAN_x8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "src_8888_8888",         PIXMAN_a8r8g8b8,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "src_0565_0565",         PIXMAN_r5g6b5,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_1555_0565",         PIXMAN_a1r5g5b5,    0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "src_0565_1555",         PIXMAN_r5g6b5,      0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a1r5g5b5 },
+    { "src_8_8",               PIXMAN_a8,          0, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8 },
+    { "src_n_8",               PIXMAN_a8,          1, PIXMAN_OP_SRC,     PIXMAN_null,     0, PIXMAN_a8 },
     { "src_n_8_0565",          PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_a8,       0, PIXMAN_r5g6b5 },
     { "src_n_8_1555",          PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_a8,       0, PIXMAN_a1r5g5b5 },
     { "src_n_8_4444",          PIXMAN_a8r8g8b8,    1, PIXMAN_OP_SRC,     PIXMAN_a8,       0, PIXMAN_a4r4g4b4 },
@@ -630,6 +680,7 @@ tests_tbl[] =
     { "over_n_0565",           PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OVER,    PIXMAN_null,     0, PIXMAN_r5g6b5 },
     { "over_n_1555",           PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OVER,    PIXMAN_null,     0, PIXMAN_a1r5g5b5 },
     { "over_8888_0565",        PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_null,     0, PIXMAN_r5g6b5 },
+    { "over_8888_8888",        PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_null,     0, PIXMAN_a8r8g8b8 },
     { "over_8888_x888",        PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_null,     0, PIXMAN_x8r8g8b8 },
     { "over_x888_8_0565",      PIXMAN_x8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_a8,       0, PIXMAN_r5g6b5 },
     { "over_x888_8_8888",      PIXMAN_x8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_a8,       0, PIXMAN_a8r8g8b8 },
@@ -653,6 +704,7 @@ tests_tbl[] =
     { "over_8888_n_x888",      PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_a8,       1, PIXMAN_x8r8g8b8 },
     { "over_8888_n_0565",      PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_a8,       1, PIXMAN_r5g6b5 },
     { "over_8888_n_1555",      PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_a8,       1, PIXMAN_a1r5g5b5 },
+    { "over_x888_n_8888",      PIXMAN_x8r8g8b8,    0, PIXMAN_OP_OVER,    PIXMAN_a8,       1, PIXMAN_a8r8g8b8 },
     { "outrev_n_8_0565",       PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8,       0, PIXMAN_r5g6b5 },
     { "outrev_n_8_1555",       PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8,       0, PIXMAN_a1r5g5b5 },
     { "outrev_n_8_x888",       PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8,       0, PIXMAN_x8r8g8b8 },
@@ -661,6 +713,9 @@ tests_tbl[] =
     { "outrev_n_8888_1555_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_a1r5g5b5 },
     { "outrev_n_8888_x888_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_x8r8g8b8 },
     { "outrev_n_8888_8888_ca", PIXMAN_a8r8g8b8,    1, PIXMAN_OP_OUT_REV, PIXMAN_a8r8g8b8, 2, PIXMAN_a8r8g8b8 },
+    { "over_reverse_n_8888",   PIXMAN_a8r8g8b8,    0, PIXMAN_OP_OVER_REVERSE, PIXMAN_null, 0, PIXMAN_a8r8g8b8 },
+    { "pixbuf",                PIXMAN_x8b8g8r8,    0, PIXMAN_OP_SRC,     PIXMAN_a8b8g8r8, 0, PIXMAN_a8r8g8b8 },
+    { "rpixbuf",               PIXMAN_x8b8g8r8,    0, PIXMAN_OP_SRC,     PIXMAN_a8b8g8r8, 0, PIXMAN_a8b8g8r8 },
 };
 
 int
@@ -668,7 +723,35 @@ main (int argc, char *argv[])
 {
     double x;
     int i;
-    char *pattern = argc > 1 ? argv[1] : "all";
+    const char *pattern = NULL;
+    for (i = 1; i < argc; i++)
+    {
+	if (argv[i][0] == '-')
+	{
+	    if (strchr (argv[i] + 1, 'b'))
+	    {
+		use_scaling = TRUE;
+		filter = PIXMAN_FILTER_BILINEAR;
+	    }
+	    else if (strchr (argv[i] + 1, 'n'))
+	    {
+		use_scaling = TRUE;
+		filter = PIXMAN_FILTER_NEAREST;
+	    }
+	}
+	else
+	{
+	    pattern = argv[i];
+	}
+    }
+
+    if (!pattern)
+    {
+	printf ("Usage: lowlevel-blt-bench [-b] [-n] pattern\n");
+	printf ("  -n : benchmark nearest scaling\n");
+	printf ("  -b : benchmark bilinear scaling\n");
+	return 1;
+    }
 
     src = aligned_malloc (4096, BUFSIZE * 3);
     memset (src, 0xCC, BUFSIZE * 3);
@@ -705,11 +788,21 @@ main (int argc, char *argv[])
     bandwidth = x = bench_memcpy ();
     printf ("reference memcpy speed = %.1fMB/s (%.1fMP/s for 32bpp fills)\n",
             x / 1000000., x / 4000000);
+    if (use_scaling)
+    {
+	printf ("---\n");
+	if (filter == PIXMAN_FILTER_BILINEAR)
+	    printf ("BILINEAR scaling\n");
+	else if (filter == PIXMAN_FILTER_NEAREST)
+	    printf ("NEAREST scaling\n");
+	else
+	    printf ("UNKNOWN scaling\n");
+    }
     printf ("---\n");
 
-    for (i = 0; i < sizeof(tests_tbl) / sizeof(tests_tbl[0]); i++)
+    for (i = 0; i < ARRAY_LENGTH (tests_tbl); i++)
     {
-	if (strcmp (pattern, "all") == 0 || strstr (tests_tbl[i].testname, pattern))
+	if (strcmp (pattern, "all") == 0 || strcmp (tests_tbl[i].testname, pattern) == 0)
 	{
 	    bench_composite (tests_tbl[i].testname,
 			     tests_tbl[i].src_fmt,

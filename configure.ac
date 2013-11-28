@@ -53,8 +53,8 @@ AC_PREREQ([2.57])
 #
 
 m4_define([pixman_major], 0)
-m4_define([pixman_minor], 24)
-m4_define([pixman_micro], 0)
+m4_define([pixman_minor], 32)
+m4_define([pixman_micro], 4)
 
 m4_define([pixman_version],[pixman_major.pixman_minor.pixman_micro])
 
@@ -64,7 +64,7 @@ AM_INIT_AUTOMAKE([foreign dist-bzip2])
 # Suppress verbose compile lines
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AM_CONFIG_HEADER(config.h)
+AC_CONFIG_HEADERS(config.h)
 
 AC_CANONICAL_HOST
 
@@ -89,6 +89,9 @@ AC_DEFUN([PIXMAN_LINK_WITH_ENV],[dnl
 	LDFLAGS=""
 	LIBS=""
 	$1
+	CFLAGS="$save_CFLAGS $CFLAGS"
+	LDFLAGS="$save_LDFLAGS $LDFLAGS"
+	LIBS="$save_LIBS $LIBS"
 	AC_LINK_IFELSE(
 		[AC_LANG_SOURCE([$2])],
 		[pixman_cc_stderr=`test -f conftest.err && cat conftest.err`
@@ -150,7 +153,7 @@ AC_CHECK_DECL([__amd64], [AMD64_ABI="yes"], [AMD64_ABI="no"])
 # if we're using Sun Studio and neither the user nor a config.site
 # has set CFLAGS.
 if test $SUNCC = yes &&			\
-   test "$test_CFLAGS" == "" &&		\
+   test "x$test_CFLAGS" = "x" &&	\
    test "$CFLAGS" = "-g"
 then
   CFLAGS="-O -g"
@@ -180,13 +183,8 @@ AC_SUBST(LT_VERSION_INFO)
 # Check for dependencies
 
 PIXMAN_CHECK_CFLAG([-Wall])
+PIXMAN_CHECK_CFLAG([-Wdeclaration-after-statement])
 PIXMAN_CHECK_CFLAG([-fno-strict-aliasing])
-
-AC_PATH_PROG(PERL, perl, no)
-if test "x$PERL" = xno; then
-    AC_MSG_ERROR([Perl is required to build pixman.])
-fi
-AC_SUBST(PERL)
 
 dnl =========================================================================
 dnl OpenMP for the test suite?
@@ -259,16 +257,69 @@ PIXMAN_CHECK_CFLAG([-fvisibility=hidden], [dnl
 #error Have -fvisibility but it is ignored and generates a warning
 #endif
 #else
-error Need GCC 4.0 for visibility
+#error Need GCC 4.0 for visibility
 #endif
 ])
 
 PIXMAN_CHECK_CFLAG([-xldscope=hidden], [dnl
 #if defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550)
 #else
-error Need Sun Studio 8 for visibility
+#error Need Sun Studio 8 for visibility
 #endif
 ])
+
+dnl ===========================================================================
+dnl Check for Loongson Multimedia Instructions
+
+if test "x$LS_CFLAGS" = "x" ; then
+    LS_CFLAGS="-march=loongson2f"
+fi
+
+have_loongson_mmi=no
+AC_MSG_CHECKING(whether to use Loongson MMI assembler)
+
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS=" $LS_CFLAGS $CFLAGS -I$srcdir"
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+#ifndef __mips_loongson_vector_rev
+#error "Loongson Multimedia Instructions are only available on Loongson"
+#endif
+#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 4))
+#error "Need GCC >= 4.4 for Loongson MMI compilation"
+#endif
+#include "pixman/loongson-mmintrin.h"
+int main () {
+    union {
+        __m64 v;
+        char c[8];
+    } a = { .c = {1, 2, 3, 4, 5, 6, 7, 8} };
+    int b = 4;
+    __m64 c = _mm_srli_pi16 (a.v, b);
+    return 0;
+}]])], have_loongson_mmi=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(loongson-mmi,
+   [AC_HELP_STRING([--disable-loongson-mmi],
+                   [disable Loongson MMI fast paths])],
+   [enable_loongson_mmi=$enableval], [enable_loongson_mmi=auto])
+
+if test $enable_loongson_mmi = no ; then
+   have_loongson_mmi=disabled
+fi
+
+if test $have_loongson_mmi = yes ; then
+   AC_DEFINE(USE_LOONGSON_MMI, 1, [use Loongson Multimedia Instructions])
+else
+   LS_CFLAGS=
+fi
+
+AC_MSG_RESULT($have_loongson_mmi)
+if test $enable_loongson_mmi = yes && test $have_loongson_mmi = no ; then
+   AC_MSG_ERROR([Loongson MMI not detected])
+fi
+
+AM_CONDITIONAL(USE_LOONGSON_MMI, test $have_loongson_mmi = yes)
 
 dnl ===========================================================================
 dnl Check for MMX
@@ -292,11 +343,25 @@ xserver_save_CFLAGS=$CFLAGS
 CFLAGS="$MMX_CFLAGS $CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if defined(__GNUC__) && (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 4))
-error "Need GCC >= 3.4 for MMX intrinsics"
+#error "Need GCC >= 3.4 for MMX intrinsics"
 #endif
 #include <mmintrin.h>
 int main () {
     __m64 v = _mm_cvtsi32_si64 (1);
+    __m64 w;
+
+    /* Some versions of clang will choke on K */
+    asm ("pshufw %2, %1, %0\n\t"
+        : "=y" (w)
+        : "y" (v), "K" (5)
+    );
+
+    /* Some versions of clang will choke on this */
+    asm ("pmulhuw %1, %0\n\t"
+	: "+y" (w)
+	: "y" (v)
+    );
+
     return _mm_cvtsi64_si32 (v);
 }]])], have_mmx_intrinsics=yes)
 CFLAGS=$xserver_save_CFLAGS
@@ -379,6 +444,50 @@ fi
 AM_CONDITIONAL(USE_SSE2, test $have_sse2_intrinsics = yes)
 
 dnl ===========================================================================
+dnl Check for SSSE3
+
+if test "x$SSSE3_CFLAGS" = "x" ; then
+    SSSE3_CFLAGS="-mssse3 -Winline"
+fi
+
+have_ssse3_intrinsics=no
+AC_MSG_CHECKING(whether to use SSSE3 intrinsics)
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS="$SSSE3_CFLAGS $CFLAGS"
+
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#include <mmintrin.h>
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#include <tmmintrin.h>
+int main () {
+    __m128i a = _mm_set1_epi32 (0), b = _mm_set1_epi32 (0), c;
+    c = _mm_maddubs_epi16 (a, b);
+    return 0;
+}]])], have_ssse3_intrinsics=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(ssse3,
+   [AC_HELP_STRING([--disable-ssse3],
+                   [disable SSSE3 fast paths])],
+   [enable_ssse3=$enableval], [enable_ssse3=auto])
+
+if test $enable_ssse3 = no ; then
+   have_ssse3_intrinsics=disabled
+fi
+
+if test $have_ssse3_intrinsics = yes ; then
+   AC_DEFINE(USE_SSSE3, 1, [use SSSE3 compiler intrinsics])
+fi
+
+AC_MSG_RESULT($have_ssse3_intrinsics)
+if test $enable_ssse3 = yes && test $have_ssse3_intrinsics = no ; then
+   AC_MSG_ERROR([SSSE3 intrinsics not detected])
+fi
+
+AM_CONDITIONAL(USE_SSSE3, test $have_ssse3_intrinsics = yes)
+
+dnl ===========================================================================
 dnl Other special flags needed when building code using MMX or SSE instructions
 case $host_os in
    solaris*)
@@ -407,10 +516,13 @@ case $host_os in
       ;;
 esac
 
+AC_SUBST(LS_CFLAGS)
+AC_SUBST(IWMMXT_CFLAGS)
 AC_SUBST(MMX_CFLAGS)
 AC_SUBST(MMX_LDFLAGS)
 AC_SUBST(SSE2_CFLAGS)
 AC_SUBST(SSE2_LDFLAGS)
+AC_SUBST(SSSE3_CFLAGS)
 
 dnl ===========================================================================
 dnl Check for VMX/Altivec
@@ -426,7 +538,7 @@ xserver_save_CFLAGS=$CFLAGS
 CFLAGS="$VMX_CFLAGS $CFLAGS"
 AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #if defined(__GNUC__) && (__GNUC__ < 3 || (__GNUC__ == 3 && __GNUC_MINOR__ < 4))
-error "Need GCC >= 3.4 for sane altivec support"
+#error "Need GCC >= 3.4 for sane altivec support"
 #endif
 #include <altivec.h>
 int main () {
@@ -543,36 +655,47 @@ fi
 dnl ===========================================================================
 dnl Check for IWMMXT
 
+AC_ARG_ENABLE(arm-iwmmxt,
+   [AC_HELP_STRING([--disable-arm-iwmmxt],
+                   [disable ARM IWMMXT fast paths])],
+   [enable_iwmmxt=$enableval], [enable_iwmmxt=auto])
+
+AC_ARG_ENABLE(arm-iwmmxt2,
+   [AC_HELP_STRING([--disable-arm-iwmmxt2],
+                   [build ARM IWMMXT fast paths with -march=iwmmxt instead of -march=iwmmxt2])],
+   [enable_iwmmxt2=$enableval], [enable_iwmmxt2=auto])
+
 if test "x$IWMMXT_CFLAGS" = "x" ; then
-   IWMMXT_CFLAGS="-march=iwmmxt -flax-vector-conversions -Winline"
+   IWMMXT_CFLAGS="-flax-vector-conversions -Winline -march=iwmmxt"
+   if test $enable_iwmmxt2 != no ; then
+      IWMMXT_CFLAGS="${IWMMXT_CFLAGS}2"
+   fi
 fi
 
 have_iwmmxt_intrinsics=no
 AC_MSG_CHECKING(whether to use ARM IWMMXT intrinsics)
 xserver_save_CFLAGS=$CFLAGS
-CFLAGS="$IWMMXT_CFLAGS $CFLAGS"
-AC_COMPILE_IFELSE([
+CFLAGS="$CFLAGS $IWMMXT_CFLAGS"
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
 #ifndef __arm__
 #error "IWMMXT is only available on ARM"
 #endif
-#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 6))
-#error "Need GCC >= 4.6 for IWMMXT intrinsics"
+#ifndef __IWMMXT__
+#error "IWMMXT not enabled (with -march=iwmmxt)"
+#endif
+#if defined(__GNUC__) && (__GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 8))
+#error "Need GCC >= 4.8 for IWMMXT intrinsics"
 #endif
 #include <mmintrin.h>
 int main () {
 	union {
 		__m64 v;
-		[char c[8];]
+		char c[8];
 	} a = { .c = {1, 2, 3, 4, 5, 6, 7, 8} };
 	int b = 4;
 	__m64 c = _mm_srli_si64 (a.v, b);
-}], have_iwmmxt_intrinsics=yes)
+}]])], have_iwmmxt_intrinsics=yes)
 CFLAGS=$xserver_save_CFLAGS
-
-AC_ARG_ENABLE(arm-iwmmxt,
-   [AC_HELP_STRING([--disable-arm-iwmmxt],
-                   [disable ARM IWMMXT fast paths])],
-   [enable_iwmmxt=$enableval], [enable_iwmmxt=auto])
 
 if test $enable_iwmmxt = no ; then
    have_iwmmxt_intrinsics=disabled
@@ -590,6 +713,51 @@ if test $enable_iwmmxt = yes && test $have_iwmmxt_intrinsics = no ; then
 fi
 
 AM_CONDITIONAL(USE_ARM_IWMMXT, test $have_iwmmxt_intrinsics = yes)
+
+dnl ==========================================================================
+dnl Check if assembler is gas compatible and supports MIPS DSPr2 instructions
+
+have_mips_dspr2=no
+AC_MSG_CHECKING(whether to use MIPS DSPr2 assembler)
+xserver_save_CFLAGS=$CFLAGS
+CFLAGS="-mdspr2 $CFLAGS"
+
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+#if !(defined(__mips__) &&  __mips_isa_rev >= 2)
+#error MIPS DSPr2 is currently only available on MIPS32r2 platforms.
+#endif
+int
+main ()
+{
+    int c = 0, a = 0, b = 0;
+    __asm__ __volatile__ (
+        "precr.qb.ph %[c], %[a], %[b]          \n\t"
+        : [c] "=r" (c)
+        : [a] "r" (a), [b] "r" (b)
+    );
+    return c;
+}]])], have_mips_dspr2=yes)
+CFLAGS=$xserver_save_CFLAGS
+
+AC_ARG_ENABLE(mips-dspr2,
+   [AC_HELP_STRING([--disable-mips-dspr2],
+                   [disable MIPS DSPr2 fast paths])],
+   [enable_mips_dspr2=$enableval], [enable_mips_dspr2=auto])
+
+if test $enable_mips_dspr2 = no ; then
+   have_mips_dspr2=disabled
+fi
+
+if test $have_mips_dspr2 = yes ; then
+   AC_DEFINE(USE_MIPS_DSPR2, 1, [use MIPS DSPr2 assembly optimizations])
+fi
+
+AM_CONDITIONAL(USE_MIPS_DSPR2, test $have_mips_dspr2 = yes)
+
+AC_MSG_RESULT($have_mips_dspr2)
+if test $enable_mips_dspr2 = yes && test $have_mips_dspr2 = no ; then
+   AC_MSG_ERROR([MIPS DSPr2 instructions not detected])
+fi
 
 dnl =========================================================================================
 dnl Check for GNU-style inline assembly support
@@ -662,7 +830,7 @@ PKG_PROG_PKG_CONFIG
 
 if test $enable_gtk = yes ; then
    AC_CHECK_LIB([pixman-1], [pixman_version_string])
-   PKG_CHECK_MODULES(GTK, [gtk+-2.0 pixman-1])
+   PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.16 pixman-1])
 fi
 
 if test $enable_gtk = auto ; then
@@ -670,15 +838,13 @@ if test $enable_gtk = auto ; then
 fi
 
 if test $enable_gtk = auto ; then
-   PKG_CHECK_MODULES(GTK, [gtk+-2.0 pixman-1], [enable_gtk=yes], [enable_gtk=no])
+   PKG_CHECK_MODULES(GTK, [gtk+-2.0 >= 2.16 pixman-1], [enable_gtk=yes], [enable_gtk=no])
 fi
 
 AM_CONDITIONAL(HAVE_GTK, [test "x$enable_gtk" = xyes])
 
 AC_SUBST(GTK_CFLAGS)
 AC_SUBST(GTK_LIBS)
-AC_SUBST(DEP_CFLAGS)
-AC_SUBST(DEP_LIBS)
 
 dnl =====================================
 dnl posix_memalign, sigaction, alarm, gettimeofday
@@ -731,27 +897,36 @@ if test x$have_gettimeofday = xyes && test x$have_sys_time_h = xyes; then
 fi
 
 dnl =====================================
+dnl Check for missing sqrtf() as, e.g., for Solaris 9
+
+AC_SEARCH_LIBS([sqrtf], [m], [],
+               [AC_DEFINE([sqrtf], [sqrt],
+                          [Define to sqrt if you do not have the `sqrtf' function.])])
+
+dnl =====================================
 dnl Thread local storage
 
-support_for__thread=no
-
-AC_MSG_CHECKING(for __thread)
-AC_LINK_IFELSE([AC_LANG_SOURCE([[
+AC_MSG_CHECKING(for thread local storage (TLS) support)
+AC_CACHE_VAL(ac_cv_tls, [
+    ac_cv_tls=none
+    keywords="__thread __declspec(thread)"
+    for kw in $keywords ; do
+        AC_TRY_COMPILE([
 #if defined(__MINGW32__) && !(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
 #error This MinGW version has broken __thread support
 #endif
 #ifdef __OpenBSD__
 #error OpenBSD has broken __thread support
 #endif
-static __thread int x ;
-int main () { x = 123; return x; }
-]])], support_for__thread=yes)
 
-if test $support_for__thread = yes; then 
-   AC_DEFINE([TOOLCHAIN_SUPPORTS__THREAD],[],[Whether the tool chain supports __thread])
+int $kw test;], [], [ac_cv_tls=$kw; break])
+    done
+])
+AC_MSG_RESULT($ac_cv_tls)
+
+if test "$ac_cv_tls" != "none"; then
+    AC_DEFINE_UNQUOTED([TLS], $ac_cv_tls, [The compiler supported TLS storage class])
 fi
-
-AC_MSG_RESULT($support_for__thread)
 
 dnl
 dnl posix tls
@@ -793,37 +968,38 @@ main ()
 ]]))
 
 AC_DEFUN([PIXMAN_CHECK_PTHREAD],[dnl
-    if test "z$support_for_pthread_setspecific" != "zyes"; then
+    if test "z$support_for_pthreads" != "zyes"; then
 	PIXMAN_LINK_WITH_ENV(
 		[$1], [pthread_test_program],
 		[PTHREAD_CFLAGS="$CFLAGS"
 		 PTHREAD_LIBS="$LIBS"
 		 PTHREAD_LDFLAGS="$LDFLAGS"
-		 support_for_pthread_setspecific=yes])
+		 support_for_pthreads=yes])
     fi
 ])
 
-if test $support_for__thread = no; then
-    support_for_pthread_setspecific=no
+support_for_pthreads=no
 
-    AC_MSG_CHECKING(for pthread_setspecific)
+AC_MSG_CHECKING(for pthreads)
 
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LIBS="-lpthread"])
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-pthread"; LDFLAGS="-pthread"])
-    PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LDFLAGS="-lroot"])
+PIXMAN_CHECK_PTHREAD([CFLAGS="-pthread"; LDFLAGS="-pthread"])
+PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LIBS="-lpthread"])
+PIXMAN_CHECK_PTHREAD([CFLAGS="-D_REENTRANT"; LDFLAGS="-lroot"])
     
-    if test $support_for_pthread_setspecific = yes; then
-	CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-	AC_DEFINE([HAVE_PTHREAD_SETSPECIFIC], [], [Whether pthread_setspecific() is supported])
+if test $support_for_pthreads = yes; then
+    AC_DEFINE([HAVE_PTHREADS], [], [Whether pthreads is supported])
+    if test $ac_cv_tls = none ; then
+        CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
     fi
-
-    AC_MSG_RESULT($support_for_pthread_setspecific);
 fi
 
+AC_MSG_RESULT($support_for_pthreads)
+
 AC_SUBST(TOOLCHAIN_SUPPORTS__THREAD)
-AC_SUBST(HAVE_PTHREAD_SETSPECIFIC)
+AC_SUBST(HAVE_PTHREADS)
 AC_SUBST(PTHREAD_LDFLAGS)
 AC_SUBST(PTHREAD_LIBS)
+AC_SUBST(PTHREAD_CFLAGS)
 
 dnl =====================================
 dnl __attribute__((constructor))
@@ -852,10 +1028,49 @@ fi
 AC_MSG_RESULT($support_for_attribute_constructor)
 AC_SUBST(TOOLCHAIN_SUPPORTS_ATTRIBUTE_CONSTRUCTOR)
 
+dnl =====================================
+dnl __float128
+
+support_for_float128=no
+
+AC_MSG_CHECKING(for __float128)
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+__float128 a = 1.0Q, b = 2.0Q; int main (void) { return a + b; }
+]])], support_for_float128=yes)
+
+if test x$support_for_float128 = xyes; then
+   AC_DEFINE([HAVE_FLOAT128], [], [Whether the tool chain supports __float128])
+fi
+
+AC_MSG_RESULT($support_for_float128)
+
+dnl =====================================
+dnl __builtin_clz
+
+support_for_builtin_clz=no
+
+AC_MSG_CHECKING(for __builtin_clz)
+AC_LINK_IFELSE([AC_LANG_SOURCE([[
+unsigned int x = 11; int main (void) { return __builtin_clz(x); }
+]])], support_for_builtin_clz=yes)
+
+if test x$support_for_builtin_clz = xyes; then
+   AC_DEFINE([HAVE_BUILTIN_CLZ], [], [Whether the compiler supports __builtin_clz])
+fi
+
+AC_MSG_RESULT($support_for_builtin_clz)
+
 dnl ==================
 dnl libpng
 
-PKG_CHECK_MODULES(PNG, [libpng], have_libpng=yes, have_libpng=no)
+AC_ARG_ENABLE(libpng, AS_HELP_STRING([--enable-libpng], [Build support for libpng (default: auto)]),
+                      [have_libpng=$enableval], [have_libpng=auto])
+
+case x$have_libpng in
+	xyes) PKG_CHECK_MODULES(PNG, [libpng]) ;;
+	xno) ;;
+	*) PKG_CHECK_MODULES(PNG, [libpng], have_libpng=yes, have_libpng=no) ;;
+esac
 
 if test x$have_libpng = xyes; then
     AC_DEFINE([HAVE_LIBPNG], [1], [Whether we have libpng])

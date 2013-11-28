@@ -2,9 +2,14 @@
 #include <config.h>
 #endif
 
-#include <stdlib.h>
 #include <assert.h>
 #include "pixman-private.h" /* For 'inline' definition */
+#include "utils-prng.h"
+
+#if defined(_MSC_VER)
+#define snprintf _snprintf
+#define strcasecmp _stricmp
+#endif
 
 #define ARRAY_LENGTH(A) ((int) (sizeof (A) / sizeof ((A) [0])))
 
@@ -12,49 +17,44 @@
  * taken from POSIX.1-2001 example
  */
 
-extern uint32_t lcg_seed;
+extern prng_t prng_state_data;
+extern prng_t *prng_state;
 #ifdef USE_OPENMP
-#pragma omp threadprivate(lcg_seed)
+#pragma omp threadprivate(prng_state_data)
+#pragma omp threadprivate(prng_state)
 #endif
 
 static inline uint32_t
-lcg_rand (void)
+prng_rand (void)
 {
-    lcg_seed = lcg_seed * 1103515245 + 12345;
-    return ((uint32_t)(lcg_seed / 65536) % 32768);
+    return prng_rand_r (prng_state);
 }
 
 static inline void
-lcg_srand (uint32_t seed)
+prng_srand (uint32_t seed)
 {
-    lcg_seed = seed;
+    if (!prng_state)
+    {
+        /* Without setting a seed, PRNG does not work properly (is just
+         * returning zeros). So we only initialize the pointer here to
+         * make sure that 'prng_srand' is always called before any
+         * other 'prng_*' function. The wrongdoers violating this order
+         * will get a segfault. */
+        prng_state = &prng_state_data;
+    }
+    prng_srand_r (prng_state, seed);
 }
 
 static inline uint32_t
-lcg_rand_n (int max)
+prng_rand_n (int max)
 {
-    return lcg_rand () % max;
+    return prng_rand () % max;
 }
 
-static inline uint32_t
-lcg_rand_N (int max)
+static inline void
+prng_randmemset (void *buffer, size_t size, prng_randmemset_flags_t flags)
 {
-    uint32_t lo = lcg_rand ();
-    uint32_t hi = lcg_rand () << 15;
-    return (lo | hi) % max;
-}
-
-static inline uint32_t
-lcg_rand_u32 (void)
-{
-    /* This uses the 10/11 most significant bits from the 3 lcg results
-     * (and mixes them with the low from the adjacent one).
-     */
-    uint32_t lo = lcg_rand() >> -(32 - 15 - 11 * 2);
-    uint32_t mid = lcg_rand() << (32 - 15 - 11 * 1);
-    uint32_t hi = lcg_rand() << (32 - 15 - 11 * 0);
-
-    return (hi ^ mid ^ lo);
+    prng_randmemset_r (prng_state, buffer, size, flags);
 }
 
 /* CRC 32 computation
@@ -64,9 +64,22 @@ compute_crc32 (uint32_t    in_crc32,
 	       const void *buf,
 	       size_t      buf_len);
 
-/* Returns TRUE if running on a little endian system */
-pixman_bool_t
-is_little_endian (void);
+uint32_t
+compute_crc32_for_image (uint32_t        in_crc32,
+			 pixman_image_t *image);
+
+/* Print the image in hexadecimal */
+void
+print_image (pixman_image_t *image);
+
+/* Returns TRUE if running on a little endian system
+ */
+static force_inline pixman_bool_t
+is_little_endian (void)
+{
+    unsigned long endian_check_var = 1;
+    return *(unsigned char *)&endian_check_var == 1;
+}
 
 /* perform endian conversion of pixel data
  */
@@ -106,10 +119,24 @@ void
 fail_after (int seconds, const char *msg);
 
 /* If possible, enable traps for floating point exceptions */
-void enable_fp_exceptions(void);
+void enable_divbyzero_exceptions(void);
+
+/* Converts a8r8g8b8 pixels to pixels that
+ *  - are not premultiplied,
+ *  - are stored in this order in memory: R, G, B, A, regardless of
+ *    the endianness of the computer.
+ * It is allowed for @src and @dst to point to the same memory buffer.
+ */
+void
+a8r8g8b8_to_rgba_np (uint32_t *dst, uint32_t *src, int n_pixels);
 
 pixman_bool_t
 write_png (pixman_image_t *image, const char *filename);
+
+void
+draw_checkerboard (pixman_image_t *image,
+		   int check_size,
+		   uint32_t color1, uint32_t color2);
 
 /* A pair of macros which can help to detect corruption of
  * floating point registers after a function call. This may
@@ -150,5 +177,71 @@ write_png (pixman_image_t *image, const char *filename);
 void *
 aligned_malloc (size_t align, size_t size);
 
+double
+convert_srgb_to_linear (double component);
+
+double
+convert_linear_to_srgb (double component);
+
 void
 initialize_palette (pixman_indexed_t *palette, uint32_t depth, int is_rgb);
+
+const char *
+operator_name (pixman_op_t op);
+
+const char *
+format_name (pixman_format_code_t format);
+
+typedef struct
+{
+    double r, g, b, a;
+} color_t;
+
+void
+do_composite (pixman_op_t op,
+	      const color_t *src,
+	      const color_t *mask,
+	      const color_t *dst,
+	      color_t *result,
+	      pixman_bool_t component_alpha);
+
+void
+round_color (pixman_format_code_t format, color_t *color);
+
+typedef struct
+{
+    pixman_format_code_t format;
+    uint32_t am, rm, gm, bm;
+    uint32_t as, rs, gs, bs;
+    uint32_t aw, rw, gw, bw;
+} pixel_checker_t;
+
+void
+pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format);
+
+void
+pixel_checker_split_pixel (const pixel_checker_t *checker, uint32_t pixel,
+			   int *a, int *r, int *g, int *b);
+
+void
+pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
+		       int *a, int *r, int *g, int *b);
+
+void
+pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
+		       int *a, int *r, int *g, int *b);
+
+pixman_bool_t
+pixel_checker_check (const pixel_checker_t *checker,
+		     uint32_t pixel, color_t *color);
+
+void
+pixel_checker_convert_pixel_to_color (const pixel_checker_t *checker,
+                                      uint32_t pixel, color_t *color);
+
+void
+pixel_checker_get_masks (const pixel_checker_t *checker,
+                         uint32_t              *am,
+                         uint32_t              *rm,
+                         uint32_t              *gm,
+                         uint32_t              *bm);

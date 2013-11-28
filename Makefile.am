@@ -10,7 +10,7 @@ snapshot:
 	test -d "$(srcdir)/.git" && distdir=$$distdir-`cd "$(srcdir)" && git rev-parse HEAD | cut -c 1-6`; \
 	$(MAKE) $(AM_MAKEFLAGS) distdir="$$distdir" dist
 
-GPGKEY=6FF7C1A8
+GPGKEY=3892336E
 USERNAME=$$USER
 RELEASE_OR_SNAPSHOT = $$(if test "x$(PIXMAN_VERSION_MINOR)" = "x$$(echo "$(PIXMAN_VERSION_MINOR)/2*2" | bc)" ; then echo release; else echo snapshot; fi)
 RELEASE_CAIRO_HOST =	$(USERNAME)@cairographics.org
@@ -20,6 +20,10 @@ RELEASE_XORG_URL =	http://xorg.freedesktop.org/archive/individual/lib
 RELEASE_XORG_HOST =	$(USERNAME)@xorg.freedesktop.org
 RELEASE_XORG_DIR =	/srv/xorg.freedesktop.org/archive/individual/lib
 RELEASE_ANNOUNCE_LIST = cairo-announce@cairographics.org, xorg-announce@lists.freedesktop.org, pixman@lists.freedesktop.org
+
+EXTRA_DIST =				\
+	Makefile.win32			\
+	Makefile.win32.common
 
 tar_gz = $(PACKAGE)-$(VERSION).tar.gz
 tar_bz2 = $(PACKAGE)-$(VERSION).tar.bz2
@@ -117,7 +121,7 @@ release-publish-message: $(HASHFILES) ensure-prev
 	@echo ""
 	@echo "GPG signature:"
 	@echo "	$(RELEASE_CAIRO_URL)/$(gpg_file)"
-	@echo "	(signed by `git config --get user.name` <`git config --get user.email`>)"
+	@echo "	(signed by`gpg --list-keys $(GPGKEY) | grep uid | cut -b4- | tr -s " "`)"
 	@echo ""
 	@echo "Git:"
 	@echo "	git://git.freedesktop.org/git/pixman"
