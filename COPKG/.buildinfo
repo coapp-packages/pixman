@@ -22,17 +22,9 @@ default {
 
 clean {
     .RemoveDir.Directories = @"intermediate";
-	.Delete.Files = @"..\pixman\pixman-combine32.c";
-	.Delete.Files = @"..\pixman\pixman-combine64.c";
-	.Delete.Files = @"..\pixman\pixman-combine32.h";
-	.Delete.Files = @"..\pixman\pixman-combine64.h";
 };
 
 nuke {
     .RemoveDir.Directories = @"output";
 	.RemoveDir.Directories = @"intermediate";
-	.Delete.Files = @"..\pixman\pixman-combine32.c";
-	.Delete.Files = @"..\pixman\pixman-combine64.c";
-	.Delete.Files = @"..\pixman\pixman-combine32.h";
-	.Delete.Files = @"..\pixman\pixman-combine64.h";
 };

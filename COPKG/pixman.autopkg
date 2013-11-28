@@ -1,7 +1,7 @@
 nuget {
     nuspec {
         id: pixman;
-        version: 8.32.0.9;
+        version: 0.32.4.1;
         title: pixman;
         authors: {pixman contributors, Benjamin Herila, Garrett Serack};
         owners: {Garrett Serack, Benjamin Herila, CoApp Project};
@@ -25,7 +25,6 @@ features such as image compositing and trapezoid rasterization";
 		source: {
 			..\pixman\*.c,
 			..\pixman\*.asm,
-			..\pixman\*.template,
 			..\pixman\*.in,
 			..\pixman\*.S
 		};
