@@ -76,7 +76,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions);HAVE_CONFIG_H</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../COPKG;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -89,7 +90,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions);HAVE_CONFIG_H</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../COPKG;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -104,7 +106,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions);HAVE_CONFIG_H</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../COPKG;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,7 +124,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions);HAVE_CONFIG_H</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../COPKG;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -132,6 +136,59 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\pixman\loongson-mmintrin.h" />
+    <ClInclude Include="..\..\pixman\pixman-accessor.h" />
+    <ClInclude Include="..\..\pixman\pixman-arm-common.h" />
+    <ClInclude Include="..\..\pixman\pixman-arm-neon-asm.h" />
+    <ClInclude Include="..\..\pixman\pixman-arm-simd-asm.h" />
+    <ClInclude Include="..\..\pixman\pixman-combine32.h" />
+    <ClInclude Include="..\..\pixman\pixman-compiler.h" />
+    <ClInclude Include="..\..\pixman\pixman-edge-imp.h" />
+    <ClInclude Include="..\..\pixman\pixman-inlines.h" />
+    <ClInclude Include="..\..\pixman\pixman-mips-dspr2-asm.h" />
+    <ClInclude Include="..\..\pixman\pixman-mips-dspr2.h" />
+    <ClInclude Include="..\..\pixman\pixman-private.h" />
+    <ClInclude Include="..\..\pixman\pixman.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\pixman\pixman-access-accessors.c" />
+    <ClCompile Include="..\..\pixman\pixman-access.c" />
+    <ClCompile Include="..\..\pixman\pixman-arm-neon.c" />
+    <ClCompile Include="..\..\pixman\pixman-arm-simd.c" />
+    <ClCompile Include="..\..\pixman\pixman-arm.c" />
+    <ClCompile Include="..\..\pixman\pixman-bits-image.c" />
+    <ClCompile Include="..\..\pixman\pixman-combine-float.c" />
+    <ClCompile Include="..\..\pixman\pixman-combine32.c" />
+    <ClCompile Include="..\..\pixman\pixman-conical-gradient.c" />
+    <ClCompile Include="..\..\pixman\pixman-edge-accessors.c" />
+    <ClCompile Include="..\..\pixman\pixman-edge.c" />
+    <ClCompile Include="..\..\pixman\pixman-fast-path.c" />
+    <ClCompile Include="..\..\pixman\pixman-filter.c" />
+    <ClCompile Include="..\..\pixman\pixman-general.c" />
+    <ClCompile Include="..\..\pixman\pixman-glyph.c" />
+    <ClCompile Include="..\..\pixman\pixman-gradient-walker.c" />
+    <ClCompile Include="..\..\pixman\pixman-image.c" />
+    <ClCompile Include="..\..\pixman\pixman-implementation.c" />
+    <ClCompile Include="..\..\pixman\pixman-linear-gradient.c" />
+    <ClCompile Include="..\..\pixman\pixman-matrix.c" />
+    <ClCompile Include="..\..\pixman\pixman-mips-dspr2.c" />
+    <ClCompile Include="..\..\pixman\pixman-mips.c" />
+    <ClCompile Include="..\..\pixman\pixman-mmx.c" />
+    <ClCompile Include="..\..\pixman\pixman-noop.c" />
+    <ClCompile Include="..\..\pixman\pixman-ppc.c" />
+    <ClCompile Include="..\..\pixman\pixman-radial-gradient.c" />
+    <ClCompile Include="..\..\pixman\pixman-region16.c" />
+    <ClCompile Include="..\..\pixman\pixman-region32.c" />
+    <ClCompile Include="..\..\pixman\pixman-solid-fill.c" />
+    <ClCompile Include="..\..\pixman\pixman-sse2.c" />
+    <ClCompile Include="..\..\pixman\pixman-ssse3.c" />
+    <ClCompile Include="..\..\pixman\pixman-timer.c" />
+    <ClCompile Include="..\..\pixman\pixman-trap.c" />
+    <ClCompile Include="..\..\pixman\pixman-utils.c" />
+    <ClCompile Include="..\..\pixman\pixman-x86.c" />
+    <ClCompile Include="..\..\pixman\pixman.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
