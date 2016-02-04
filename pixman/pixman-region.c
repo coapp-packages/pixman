@@ -341,8 +341,8 @@ PREFIX (_print) (region_type_t *rgn)
     int i;
     box_type_t * rects;
 
-    num = PIXREGION_NUMRECTS (rgn);
-    size = PIXREGION_SIZE (rgn);
+    num = (int)PIXREGION_NUMRECTS (rgn);
+    size = (int)PIXREGION_SIZE (rgn);
     rects = PIXREGION_RECTS (rgn);
 
     fprintf (stderr, "num: %d size: %d\n", num, size);
@@ -419,7 +419,7 @@ PREFIX (_fini) (region_type_t *region)
 PIXMAN_EXPORT int
 PREFIX (_n_rects) (region_type_t *region)
 {
-    return PIXREGION_NUMRECTS (region);
+    return (int)PIXREGION_NUMRECTS (region);
 }
 
 PIXMAN_EXPORT box_type_t *
@@ -427,7 +427,7 @@ PREFIX (_rectangles) (region_type_t *region,
                       int               *n_rects)
 {
     if (n_rects)
-	*n_rects = PIXREGION_NUMRECTS (region);
+	*n_rects = (int)PIXREGION_NUMRECTS (region);
 
     return PIXREGION_RECTS (region);
 }
@@ -475,7 +475,7 @@ pixman_rect_alloc (region_type_t * region,
 
 	if (n == 1)
 	{
-	    n = region->data->numRects;
+	    n = (int)region->data->numRects;
 	    if (n > 500) /* XXX pick numbers out of a hat */
 		n = 250;
 	}
@@ -664,7 +664,7 @@ pixman_region_append_non_o (region_type_t * region,
     box_type_t *next_rect;
     int new_rects;
 
-    new_rects = r_end - r;
+    new_rects = (int)(r_end - r);
 
     critical_if_fail (y1 < y2);
     critical_if_fail (new_rects != 0);
@@ -699,7 +699,7 @@ pixman_region_append_non_o (region_type_t * region,
     do									\
     {									\
 	int new_rects;							\
-	if ((new_rects = r_end - r)) {					\
+	if ((new_rects = (int)(r_end - r))) {					\
 	    RECTALLOC_BAIL (new_reg, new_rects, bail);			\
 	    memmove ((char *)PIXREGION_TOP (new_reg), (char *)r,	\
 		     new_rects * sizeof(box_type_t));			\
@@ -793,10 +793,10 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
      */
 
     r1 = PIXREGION_RECTS (reg1);
-    new_size = PIXREGION_NUMRECTS (reg1);
+    new_size = (int)PIXREGION_NUMRECTS (reg1);
     r1_end = r1 + new_size;
 
-    numRects = PIXREGION_NUMRECTS (reg2);
+    numRects = (int)PIXREGION_NUMRECTS (reg2);
     r2 = PIXREGION_RECTS (reg2);
     r2_end = r2 + numRects;
     
@@ -890,7 +890,7 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
                 bot = MIN (r1->y2, r2y1);
                 if (top != bot)
                 {
-                    cur_band = new_reg->data->numRects;
+                    cur_band = (int)new_reg->data->numRects;
                     if (!pixman_region_append_non_o (new_reg, r1, r1_band_end, top, bot))
 			goto bail;
                     COALESCE (new_reg, prev_band, cur_band);
@@ -907,7 +907,7 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
 		
                 if (top != bot)
                 {
-                    cur_band = new_reg->data->numRects;
+                    cur_band = (int)new_reg->data->numRects;
 
                     if (!pixman_region_append_non_o (new_reg, r2, r2_band_end, top, bot))
 			goto bail;
@@ -929,7 +929,7 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
         ybot = MIN (r1->y2, r2->y2);
         if (ybot > ytop)
         {
-            cur_band = new_reg->data->numRects;
+            cur_band = (int)new_reg->data->numRects;
 
             if (!(*overlap_func)(new_reg,
                                  r1, r1_band_end,
@@ -968,7 +968,7 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
         /* Do first non_overlap1Func call, which may be able to coalesce */
         FIND_BAND (r1, r1_band_end, r1_end, r1y1);
 	
-        cur_band = new_reg->data->numRects;
+        cur_band = (int)new_reg->data->numRects;
 	
         if (!pixman_region_append_non_o (new_reg,
                                          r1, r1_band_end,
@@ -987,7 +987,7 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
         /* Do first non_overlap2Func call, which may be able to coalesce */
         FIND_BAND (r2, r2_band_end, r2_end, r2y1);
 
-	cur_band = new_reg->data->numRects;
+	cur_band = (int)new_reg->data->numRects;
 
         if (!pixman_region_append_non_o (new_reg,
                                          r2, r2_band_end,
@@ -1004,7 +1004,7 @@ pixman_op (region_type_t *  new_reg,               /* Place to store result	    
 
     free (old_data);
 
-    if (!(numRects = new_reg->data->numRects))
+    if (!(numRects = (int)new_reg->data->numRects))
     {
         FREE_DATA (new_reg);
         new_reg->data = pixman_region_empty_data;
@@ -1596,7 +1596,7 @@ validate (region_type_t * badreg)
         return TRUE;
     }
     
-    numRects = badreg->data->numRects;
+    numRects = (int)badreg->data->numRects;
     if (!numRects)
     {
         if (PIXREGION_NAR (badreg))
@@ -1685,7 +1685,7 @@ validate (region_type_t * badreg)
 		    reg->extents.x1 = box->x1;
 		
                 COALESCE (reg, rit->prev_band, rit->cur_band);
-                rit->cur_band = reg->data->numRects;
+                rit->cur_band = (int)reg->data->numRects;
                 RECTALLOC_BAIL (reg, 1, bail);
                 *PIXREGION_TOP (reg) = *box;
                 reg->data->numRects++;
@@ -2124,7 +2124,7 @@ PREFIX (_contains_rectangle) (region_type_t *  region,
 
     GOOD (region);
 
-    numRects = PIXREGION_NUMRECTS (region);
+    numRects = (int)PIXREGION_NUMRECTS (region);
 
     /* useful optimization */
     if (!numRects || !EXTENTCHECK (&region->extents, prect))
@@ -2236,7 +2236,7 @@ PREFIX (_translate) (region_type_t *region, int x, int y)
     
     if (((x1 - PIXMAN_REGION_MIN) | (y1 - PIXMAN_REGION_MIN) | (PIXMAN_REGION_MAX - x2) | (PIXMAN_REGION_MAX - y2)) >= 0)
     {
-        if (region->data && (nbox = region->data->numRects))
+        if (region->data && (nbox = (int)region->data->numRects))
         {
             for (pbox = PIXREGION_BOXPTR (region); nbox--; pbox++)
             {
@@ -2268,7 +2268,7 @@ PREFIX (_translate) (region_type_t *region, int x, int y)
     else if (y2 > PIXMAN_REGION_MAX)
 	region->extents.y2 = PIXMAN_REGION_MAX;
 
-    if (region->data && (nbox = region->data->numRects))
+    if (region->data && (nbox = (int)region->data->numRects))
     {
         box_type_t * pbox_out;
 
@@ -2351,7 +2351,7 @@ PREFIX (_contains_point) (region_type_t * region,
     int numRects;
 
     GOOD (region);
-    numRects = PIXREGION_NUMRECTS (region);
+    numRects = (int)PIXREGION_NUMRECTS (region);
 
     if (!numRects || !INBOX (&region->extents, x, y))
 	return(FALSE);
@@ -2420,7 +2420,7 @@ PREFIX (_selfcheck) (region_type_t *reg)
 	return FALSE;
     }
 
-    numRects = PIXREGION_NUMRECTS (reg);
+    numRects = (int)PIXREGION_NUMRECTS (reg);
     if (!numRects)
     {
 	return ((reg->extents.x1 == reg->extents.x2) &&
@@ -2631,7 +2631,7 @@ PREFIX (_init_from_image) (region_type_t *region,
     {
         pw = pw_line;
         pw_line += stride;
-        irect_line_start = rects - first_rect;
+        irect_line_start = (int)(rects - first_rect);
 
         /* If the Screen left most bit of the word is set, we're starting in
          * a box */

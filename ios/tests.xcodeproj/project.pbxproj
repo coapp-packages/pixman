@@ -36,6 +36,11 @@
 		2CC551271C63A8E600929728 /* pixman-trap.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC5510C1C63A8E600929728 /* pixman-trap.c */; };
 		2CC551281C63A8E600929728 /* pixman-utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC5510D1C63A8E600929728 /* pixman-utils.c */; };
 		2CC551291C63A8E600929728 /* pixman-x86.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC5510E1C63A8E600929728 /* pixman-x86.c */; };
+		2CC5512D1C63B16300929728 /* pixman-mips.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC5512C1C63B16300929728 /* pixman-mips.c */; };
+		2CC5512F1C63B19700929728 /* pixman-ppc.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC5512E1C63B19700929728 /* pixman-ppc.c */; };
+		2CC551311C63B1E900929728 /* pixel-test.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC551301C63B1E900929728 /* pixel-test.c */; };
+		2CC551351C63B3C100929728 /* utils.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC551341C63B3C100929728 /* utils.c */; };
+		2CC551391C63B45300929728 /* utils-prng.c in Sources */ = {isa = PBXBuildFile; fileRef = 2CC551381C63B45300929728 /* utils-prng.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +77,11 @@
 		2CC5510E1C63A8E600929728 /* pixman-x86.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "pixman-x86.c"; path = "../pixman/pixman-x86.c"; sourceTree = "<group>"; };
 		2CC5512A1C63A90E00929728 /* config.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = config.h; path = ../COPKG/config.h; sourceTree = "<group>"; };
 		2CC5512B1C63A90E00929728 /* pixman-version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "pixman-version.h"; path = "../COPKG/pixman-version.h"; sourceTree = "<group>"; };
+		2CC5512C1C63B16300929728 /* pixman-mips.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "pixman-mips.c"; path = "../pixman/pixman-mips.c"; sourceTree = "<group>"; };
+		2CC5512E1C63B19700929728 /* pixman-ppc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "pixman-ppc.c"; path = "../pixman/pixman-ppc.c"; sourceTree = "<group>"; };
+		2CC551301C63B1E900929728 /* pixel-test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "pixel-test.c"; path = "../../test/pixel-test.c"; sourceTree = "<group>"; };
+		2CC551341C63B3C100929728 /* utils.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = utils.c; path = ../../test/utils.c; sourceTree = "<group>"; };
+		2CC551381C63B45300929728 /* utils-prng.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "utils-prng.c"; path = "../../test/utils-prng.c"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +98,8 @@
 		2C851EB01C63A7CA00F07372 = {
 			isa = PBXGroup;
 			children = (
+				2CC5512E1C63B19700929728 /* pixman-ppc.c */,
+				2CC5512C1C63B16300929728 /* pixman-mips.c */,
 				2CC5512A1C63A90E00929728 /* config.h */,
 				2CC5512B1C63A90E00929728 /* pixman-version.h */,
 				2CC550F41C63A8E600929728 /* pixman-access-accessors.c */,
@@ -134,6 +146,9 @@
 		2C851EBB1C63A7CA00F07372 /* tests */ = {
 			isa = PBXGroup;
 			children = (
+				2CC551381C63B45300929728 /* utils-prng.c */,
+				2CC551341C63B3C100929728 /* utils.c */,
+				2CC551301C63B1E900929728 /* pixel-test.c */,
 				2C851EC81C63A7CA00F07372 /* Assets.xcassets */,
 				2C851ECD1C63A7CA00F07372 /* Info.plist */,
 				2C851EBC1C63A7CA00F07372 /* Supporting Files */,
@@ -216,7 +231,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2CC551391C63B45300929728 /* utils-prng.c in Sources */,
 				2CC551221C63A8E600929728 /* pixman-radial-gradient.c in Sources */,
+				2CC551311C63B1E900929728 /* pixel-test.c in Sources */,
 				2CC551211C63A8E600929728 /* pixman-noop.c in Sources */,
 				2CC551191C63A8E600929728 /* pixman-filter.c in Sources */,
 				2CC5511F1C63A8E600929728 /* pixman-linear-gradient.c in Sources */,
@@ -224,10 +241,12 @@
 				2CC550F31C63A84300929728 /* pixman.c in Sources */,
 				2CC5511B1C63A8E600929728 /* pixman-glyph.c in Sources */,
 				2CC5511E1C63A8E600929728 /* pixman-implementation.c in Sources */,
+				2CC551351C63B3C100929728 /* utils.c in Sources */,
 				2CC551201C63A8E600929728 /* pixman-matrix.c in Sources */,
 				2CC551291C63A8E600929728 /* pixman-x86.c in Sources */,
 				2CC551241C63A8E600929728 /* pixman-region32.c in Sources */,
 				2CC551231C63A8E600929728 /* pixman-region16.c in Sources */,
+				2CC5512F1C63B19700929728 /* pixman-ppc.c in Sources */,
 				2CC551181C63A8E600929728 /* pixman-fast-path.c in Sources */,
 				2CC551281C63A8E600929728 /* pixman-utils.c in Sources */,
 				2CC5511C1C63A8E600929728 /* pixman-gradient-walker.c in Sources */,
@@ -244,6 +263,7 @@
 				2CC551261C63A8E600929728 /* pixman-timer.c in Sources */,
 				2CC551111C63A8E600929728 /* pixman-arm.c in Sources */,
 				2CC551121C63A8E600929728 /* pixman-bits-image.c in Sources */,
+				2CC5512D1C63B16300929728 /* pixman-mips.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -277,8 +297,8 @@
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
-					"$(inherited)",
+					PIXMAN_NO_TLS,
+					HAVE_CONFIG_H,
 				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
@@ -286,6 +306,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"../COPKG/**",
+					"../pixman/**",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -318,12 +342,20 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					PIXMAN_NO_TLS,
+					HAVE_CONFIG_H,
+				);
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"../COPKG/**",
+					"../pixman/**",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 9.2;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
