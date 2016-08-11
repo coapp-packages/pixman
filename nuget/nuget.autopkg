@@ -1,7 +1,7 @@
 nuget{
 	nuspec{
 		id = pixman_static;
-		version : 0.32.4.2; //increase this trailing number if this file has changed to generate a new version of the NuGet package
+		version : 0.32.4.3; //increase this trailing number if this file has changed to generate a new version of the NuGet package
 		title: Pixman static library;
 		authors: {Keith Packard};
 		owners: {Ivan Gagis};
@@ -28,26 +28,18 @@ nuget{
 		
 		[x86,release] { 
 			lib: ..\msvs_solution\Release\pixman.lib;
-			symbols: ..\msvs_solution\pixman\Release\pixman.pdb;
-//			bin: ..\msvs_solution\Release\pixman.dll;
 		}
 
 		[x86,debug] { 
 			lib: ..\msvs_solution\Debug\pixman.lib;
-			symbols: ..\msvs_solution\pixman\Debug\pixman.pdb;
-//			bin: ..\msvs_solution\Debug\pixman.dll;
 		}
 
 		[x64,release] { 
 			lib: ..\msvs_solution\x64\Release\pixman.lib;
-			symbols: ..\msvs_solution\pixman\x64\Release\pixman.pdb;
-//			bin: ..\msvs_solution\x64\Release\pixman.dll;
 		}
 
 		[x64,debug] { 
 			lib: ..\msvs_solution\x64\Debug\pixman.lib;
-			symbols: ..\msvs_solution\pixman\x64\Debug\pixman.pdb;
-//			bin: ..\msvs_solution\x64\Debug\pixman.dll;
 		}  
 	}
 }
