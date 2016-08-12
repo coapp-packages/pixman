@@ -21,10 +21,10 @@ deploy:
   provider: NuGet
   api_key:
     secure: cvBwlGzXt2fwZB1AFv+aJZca9hCQf4hW/BYwKOjCjCx0WFD9L6g9e2IH7SZ+P0Qf
-  skip_symbols: true
+  skip_symbols: false
   artifact: /.*\.nupkg/
   on:
-    appveyor_repo_tag: true
+    appveyor_repo_tag: false
 
 artifacts:
   - path: .\nuget\*.nupkg
