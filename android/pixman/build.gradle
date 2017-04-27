@@ -162,18 +162,10 @@ task copyNdkLibsToAAR(type: Zip) {
     exclude('**/*.so') //do not include shared libraries into final AAR
     from("../../COPKG") {
         include('**/pixman-version.h')
-//        exclude('makefile')
-//        exclude('soname.txt')
-//        exclude('**/*.cpp')
-//        exclude('**/*.c')
-        into('ndkLibs/include/')
+        into('ndkLibs/include/pixman')
     }
     from("../../pixman") {
         include('**/*.h')
-//        exclude('makefile')
-//        exclude('soname.txt')
-//        exclude('**/*.cpp')
-//        exclude('**/*.c')
         into('ndkLibs/include/pixman')
     }
     from("build/intermediates/binaries/debug/lib"){
