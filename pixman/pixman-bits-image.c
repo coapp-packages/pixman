@@ -285,7 +285,7 @@ bits_image_fetch_pixel_separable_convolution (bits_image_t *image,
                         pixel = get_pixel (image, rx, ry, TRUE);
 		    }
 
-                    f = (fy * fx + 0x8000) >> 16;
+                    f = (pixman_fixed_t)((fy * fx + 0x8000) >> 16);
 
                     srtot += (int)RED_8 (pixel) * f;
                     sgtot += (int)GREEN_8 (pixel) * f;
@@ -484,8 +484,8 @@ bits_image_fetch_general (pixman_iter_t  *iter,
 	{
 	    if (w != 0)
 	    {
-		x0 = ((pixman_fixed_48_16_t)x << 16) / w;
-		y0 = ((pixman_fixed_48_16_t)y << 16) / w;
+		x0 = (pixman_fixed_t)(((pixman_fixed_48_16_t)x << 16) / w);
+		y0 = (pixman_fixed_t)(((pixman_fixed_48_16_t)y << 16) / w);
 	    }
 	    else
 	    {

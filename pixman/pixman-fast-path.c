@@ -2814,7 +2814,7 @@ bits_image_fetch_separable_convolution_affine (pixman_image_t * image,
 			    }
 			}
 
-			f = ((pixman_fixed_32_32_t)fx * fy + 0x8000) >> 16;
+			f = (pixman_fixed_t)(((pixman_fixed_32_32_t)fx * fy + 0x8000) >> 16);
 			srtot += (int)RED_8 (pixel) * f;
 			sgtot += (int)GREEN_8 (pixel) * f;
 			sbtot += (int)BLUE_8 (pixel) * f;

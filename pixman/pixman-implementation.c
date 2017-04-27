@@ -121,7 +121,7 @@ _pixman_implementation_lookup_composite (pixman_implementation_t  *toplevel,
 
 	while (info->op != PIXMAN_OP_NONE)
 	{
-	    if ((info->op == op || info->op == PIXMAN_OP_any)		&&
+	    if ((info->op == op || ((int)(info->op)) == PIXMAN_OP_any)		&&
 		/* Formats */
 		((info->src_format == src_format) ||
 		 (info->src_format == PIXMAN_any))			&&
@@ -362,9 +362,9 @@ _pixman_disabled (const char *name)
 	    int len;
 
 	    if ((end = strchr (env, ' ')))
-		len = end - env;
+		len = (int)(end - env);
 	    else
-		len = strlen (env);
+		len = (int)strlen (env);
 
 	    if (strlen (name) == len && strncmp (name, env, len) == 0)
 	    {

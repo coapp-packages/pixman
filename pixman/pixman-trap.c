@@ -104,8 +104,8 @@ pixman_edge_step (pixman_edge_t *e,
     {
 	if (ne > 0)
 	{
-	    int nx = (ne + e->dy - 1) / e->dy;
-	    e->e = ne - nx * (pixman_fixed_48_16_t) e->dy;
+	    int nx = (int)((ne + e->dy - 1) / e->dy);
+	    e->e = (pixman_fixed_t)(ne - nx * (pixman_fixed_48_16_t) e->dy);
 	    e->x += nx * e->signdx;
 	}
     }
@@ -113,8 +113,8 @@ pixman_edge_step (pixman_edge_t *e,
     {
 	if (ne <= -e->dy)
 	{
-	    int nx = (-ne) / e->dy;
-	    e->e = ne + nx * (pixman_fixed_48_16_t) e->dy;
+	    int nx = (int)((-ne) / e->dy);
+	    e->e = (pixman_fixed_t)(ne + nx * (pixman_fixed_48_16_t) e->dy);
 	    e->x -= nx * e->signdx;
 	}
     }
@@ -138,12 +138,12 @@ _pixman_edge_multi_init (pixman_edge_t * e,
 
     if (ne > 0)
     {
-	int nx = ne / e->dy;
+	int nx = (int)(ne / e->dy);
 	ne -= nx * (pixman_fixed_48_16_t)e->dy;
 	stepx += nx * e->signdx;
     }
 
-    *dx_p = ne;
+    *dx_p = (pixman_fixed_t)ne;
     *stepx_p = stepx;
 }
 

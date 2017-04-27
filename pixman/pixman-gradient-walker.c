@@ -74,7 +74,7 @@ gradient_walker_reset (pixman_gradient_walker_t *walker,
     }
     else
     {
-	x = pos;
+	x = (int32_t)pos;
     }
     
     for (n = 0; n < count; n++)

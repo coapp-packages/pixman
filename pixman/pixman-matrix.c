@@ -389,9 +389,9 @@ pixman_transform_point_3d (const struct pixman_transform *transform,
 
     pixman_transform_point_31_16_3d (transform, &tmp, &tmp);
 
-    vector->vector[0] = tmp.v[0];
-    vector->vector[1] = tmp.v[1];
-    vector->vector[2] = tmp.v[2];
+    vector->vector[0] = (pixman_fixed_t)tmp.v[0];
+    vector->vector[1] = (pixman_fixed_t)tmp.v[1];
+    vector->vector[2] = (pixman_fixed_t)tmp.v[2];
 
     return vector->vector[0] == tmp.v[0] &&
            vector->vector[1] == tmp.v[1] &&
@@ -410,9 +410,9 @@ pixman_transform_point (const struct pixman_transform *transform,
     if (!pixman_transform_point_31_16 (transform, &tmp, &tmp))
         return FALSE;
 
-    vector->vector[0] = tmp.v[0];
-    vector->vector[1] = tmp.v[1];
-    vector->vector[2] = tmp.v[2];
+    vector->vector[0] = (pixman_fixed_t)tmp.v[0];
+    vector->vector[1] = (pixman_fixed_t)tmp.v[1];
+    vector->vector[2] = (pixman_fixed_t)tmp.v[2];
 
     return vector->vector[0] == tmp.v[0] &&
            vector->vector[1] == tmp.v[1] &&
